@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "SysTrayDemo.h"
 #include "Strsafe.h"
+#include <dbt.h>
 
 #define MAX_LOADSTRING 100
 #define	WM_USER_SHELLICON WM_USER + 1
@@ -158,7 +159,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	switch (message)
 	{
-
+	case WM_CREATE:
+		break;
+		
 	case WM_USER_SHELLICON: 
 		// systray msg callback 
 		switch(LOWORD(lParam)) 
@@ -214,6 +217,65 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 		}
 		break;
+
+
+	case WM_DEVICECHANGE:
+	{
+		//
+		// This is the actual message from the interface via Windows messaging.
+		// This code includes some additional decoding for this particular device type
+		// and some common validation checks.
+		//
+		// Note that not all devices utilize these optional parameters in the same
+		// way. Refer to the extended information for your particular device type 
+		// specified by your GUID.
+		//
+		PDEV_BROADCAST_DEVICEINTERFACE b = (PDEV_BROADCAST_DEVICEINTERFACE)lParam;
+		TCHAR strBuff[256] = { 0 };
+
+		// Output some messages to the window.
+		switch (wParam)
+		{
+			case DBT_DEVICEARRIVAL:
+				StringCchPrintf(
+					strBuff, 256,
+					TEXT("Message: DBT_DEVICEARRIVAL\n"));
+				break;
+			case DBT_DEVICEREMOVECOMPLETE:
+				StringCchPrintf(
+					strBuff, 256,
+					TEXT("Message: DBT_DEVICEREMOVECOMPLETE\n"));
+				break;
+			case DBT_DEVNODES_CHANGED:
+				StringCchPrintf(
+					strBuff, 256,
+					TEXT("Message: DBT_DEVNODES_CHANGED\n"));
+				break;
+			default:
+				StringCchPrintf(
+					strBuff, 256,
+					TEXT("Message: WM_DEVICECHANGE message received, value %d unhandled.\n"),
+					wParam);
+				break;
+			}
+
+			NOTIFYICONDATA IconData = { 0 };
+
+			IconData.cbSize = sizeof(IconData);
+			IconData.hWnd = hWnd;
+			IconData.uFlags = NIF_INFO;
+			IconData.uID = IDI_SYSTRAYDEMO;
+			IconData.uCallbackMessage = WM_USER_SHELLICON;
+			IconData.dwInfoFlags = NIIF_INFO;
+			lstrcpy(IconData.szInfo, strBuff);
+			lstrcpy(IconData.szInfoTitle, L"Event Title");
+			IconData.uTimeout = 15000; // in milliseconds
+
+			Shell_NotifyIcon(NIM_MODIFY, &IconData);
+	}
+	break;
+
+
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
 		wmEvent = HIWORD(wParam);
@@ -249,9 +311,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// TODO: Add any drawing code here...
 		EndPaint(hWnd, &ps);
 		break;*/
+
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
+
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
@@ -264,16 +328,16 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	UNREFERENCED_PARAMETER(lParam);
 	switch (message)
 	{
-	case WM_INITDIALOG:
-		return (INT_PTR)TRUE;
-
-	case WM_COMMAND:
-		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-		{
-			EndDialog(hDlg, LOWORD(wParam));
+		case WM_INITDIALOG:
 			return (INT_PTR)TRUE;
-		}
-		break;
+
+		case WM_COMMAND:
+			if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+			{
+				EndDialog(hDlg, LOWORD(wParam));
+				return (INT_PTR)TRUE;
+			}
+			break;
 	}
 	return (INT_PTR)FALSE;
 }
